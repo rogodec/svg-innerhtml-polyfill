@@ -1,79 +1,84 @@
 (function () {
-  var serializeXML = function (node, output) {
-    var nodeType = node.nodeType;
-    if (nodeType === 3) { // TEXT nodes.
-      // Replace special XML characters with their entities.
-      output.push(node.textContent.replace(/&/, '&amp;').replace(/</, '&lt;').replace('>', '&gt;'));
-    } else if (nodeType === 1) { // ELEMENT nodes.
-      // Serialize Element nodes.
-      output.push('<', node.tagName);
-      if (node.hasAttributes()) {
-        var attrMap = node.attributes;
-        for (var i = 0, len = attrMap.length; i < len; ++i) {
-          var attrNode = attrMap.item(i);
-          output.push(' ', attrNode.name, '=\'', attrNode.value, '\'');
-        }
-      }
-      if (node.hasChildNodes()) {
-        output.push('>');
-        var childNodes = node.childNodes;
-        for (var i = 0, len = childNodes.length; i < len; ++i) {
-          serializeXML(childNodes.item(i), output);
-        }
-        output.push('</', node.tagName, '>');
-      } else {
-        output.push('/>');
-      }
-    } else if (nodeType == 8) {
-      output.push('<!--', node.nodeValue, '-->');
-    } else {
-      throw 'Error serializing XML. Unhandled node of type: ' + nodeType;
+  function serializeNode (node) {
+    switch (node.nodeType) {
+      case 1:
+        return serializeElementNode(node);
+      case 3:
+        return serializeTextNode(node);
+      case 8:
+        return serializeCommentNode(node);
     }
   }
-  // The innerHTML DOM property for SVGElement.
+
+  function serializeTextNode (node) {
+      return node.textContent.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+
+  function serializeCommentNode (node) {
+      return '<!--' + node.nodeValue + '-->'
+  }
+
+  function serializeElementNode (node) {
+      var output = '';
+
+      output += '<' + node.tagName;
+
+      if (node.hasAttributes()) {
+          [].forEach.call(node.attributes, function(attrNode) {
+              output += ' ' + attrNode.name + '="' + attrNode.value + '"'
+          })
+      }
+
+      output += '>';
+
+      if (node.hasChildNodes()) {
+          [].forEach.call(node.childNodes, function(childNode) {
+              output += serializeNode(childNode);
+          });
+      }
+
+      output += '</' + node.tagName + '>';
+
+      return output;
+  }
+
   Object.defineProperty(SVGElement.prototype, 'innerHTML', {
     get: function () {
-      var output = [];
-      var childNode = this.firstChild;
-      while (childNode) {
-        serializeXML(childNode, output);
-        childNode = childNode.nextSibling;
-      }
-      return output.join('');
+      var output = '';
+
+      [].forEach.call(this.childNodes, function(childNode) {
+          output += serializeNode(childNode);
+      });
+
+      return output;
     },
-    set: function (markupText) {
-      // Wipe out the current contents of the element.
+    set: function (markup) {
       while (this.firstChild) {
         this.removeChild(this.firstChild);
       }
 
       try {
-        // Parse the markup into valid nodes.
         var dXML = new DOMParser();
         dXML.async = false;
-        // Wrap the markup into a SVG node to ensure parsing works.
-        var sXML = '<svg xmlns=\'http://www.w3.org/2000/svg\' xmlns:xlink=\'http://www.w3.org/1999/xlink\'>' + markupText + '</svg>';
+
+        var sXML = '<svg xmlns=\'http://www.w3.org/2000/svg\' xmlns:xlink=\'http://www.w3.org/1999/xlink\'>' + markup + '</svg>';
         var svgDocElement = dXML.parseFromString(sXML, 'text/xml').documentElement;
 
-        // Now take each node, import it and append to this element.
-        var childNode = svgDocElement.firstChild;
-        while (childNode) {
-          this.appendChild(this.ownerDocument.importNode(childNode, true));
-          childNode = childNode.nextSibling;
-        }
+        [].forEach.call(svgDocElement.childNodes, function(childNode) {
+            this.appendChild(this.ownerDocument.importNode(childNode, true));
+        }.bind(this));
       } catch (e) {
-        throw new Error('Error parsing XML string');
-      };
+          throw new Error('Error parsing markup string');
+      }
     }
   });
 
-  // The innerSVG DOM property for SVGElement.
   Object.defineProperty(SVGElement.prototype, 'innerSVG', {
     get: function () {
       return this.innerHTML;
     },
-    set: function (markupText) {
-      this.innerHTML = markupText;
+    set: function (markup) {
+      this.innerHTML = markup;
     }
   });
 

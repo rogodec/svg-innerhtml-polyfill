@@ -1,0 +1,19 @@
+{
+  "name": "svg-innerhtml-polyfill",
+  "version": "1.0.0",
+  "description": "svg innerHtml polyfill for IE",
+  "main": "index.js",
+  "scripts": {
+    "test": ""
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/rogodec/svg-innerhtml-polyfill.git"
+  },
+  "author": "rogodec",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/rogodec/svg-innerhtml-polyfill/issues"
+  },
+  "homepage": "https://github.com/rogodec/svg-innerhtml-polyfill#readme"
+}
