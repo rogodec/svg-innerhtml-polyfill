@@ -1,4 +1,12 @@
 (function () {
+  try {
+    if (typeof SVGElement === 'undefined' || Boolean(SVGElement.prototype.innerHTML)) {
+      return;
+    }
+  } catch (e) {
+      return;
+  }
+
   function serializeNode (node) {
     switch (node.nodeType) {
       case 1:
